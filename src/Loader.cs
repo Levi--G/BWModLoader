@@ -48,8 +48,8 @@ namespace ModLoader
                     Log("Found type in " + file.Name + ": " + t.Name);
                     if (t.IsClass && t.IsSubclassOf(typeof(MonoBehaviour)))
                     {
-                        Log("Loaded '" + t.Name + "' in " + file.Name);
                         modObjects.AddComponent(t);
+                        Log("Loaded '" + t.Name + "' in " + file.Name);
                     }
                 }
             }
