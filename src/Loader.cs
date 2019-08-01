@@ -41,16 +41,25 @@ namespace ModLoader
             //Open them, Get the mod class, then add it in the game.
             foreach (var file in d.GetFiles("*.dll"))
             {
-                Assembly modDll = Assembly.LoadFrom(modsPath + "/" + file.Name);
-                Type[] modType = modDll.GetTypes();
-                foreach (Type t in modType)
+                try
                 {
-                    Log("Found type in " + file.Name + ": " + t.Name);
-                    if (t.IsClass && t.IsSubclassOf(typeof(MonoBehaviour)))
+                    Assembly modDll = Assembly.LoadFrom(modsPath + "/" + file.Name);
+                    Type[] modType = modDll.GetTypes();
+                    foreach (Type t in modType)
                     {
-                        modObjects.AddComponent(t);
-                        Log("Loaded '" + t.Name + "' in " + file.Name);
+                        Log("Found type in " + file.Name + ": " + t.Name);
+                        if (t.IsClass && t.IsSubclassOf(typeof(MonoBehaviour)))
+                        {
+                            modObjects.AddComponent(t);
+                            Log("Loaded '" + t.Name + "' in " + file.Name);
+                        }
                     }
+                }
+                catch (Exception e)
+                {
+                    Log("Exception raised while loading mod " + file.Name);
+                    Log(e.Message);
+                    Log("Skipped loading this mod");
                 }
             }
             Log("All Mods have been Loaded!");
