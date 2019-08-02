@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
@@ -7,13 +8,58 @@ namespace ModLoader
     public static class Loader
     {
         public static GameObject modObjects;
-        public static FileInfo[] modFiles;
+        public static Dictionary<Component, FileInfo> loadedMods = new Dictionary<Component, FileInfo>(); 
 
         public static void Log(string output)
         {
             Console.WriteLine("[BWML]" + output);
             //UnityEngine.Debug.Log("[BWML]" + output);
         }
+
+        static void FindMods(DirectoryInfo path)
+        {
+            FileInfo[] files = path.GetFiles("*.dll");
+            foreach (FileInfo file in files)
+            {
+                try
+                {
+                    Assembly modDll = Assembly.LoadFrom(path.FullName + "/" + file.Name);
+                    Type[] modType = modDll.GetTypes();
+                    foreach (Type t in modType)
+                    {
+                        Log("Found type in " + file.Name + ": " + t.Name);
+                        if (t.IsClass && t.IsSubclassOf(typeof(MonoBehaviour)))
+                        {
+                            loadedMods.Add(modObjects.AddComponent(t), file);
+                            Log("Loaded " + t.Name + " from file: " + file.Name);
+                            //CleanMods();
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log("Exception raised while loading mod " + file.Name);
+                    Log(e.Message);
+                    Log("Skipped loading this mod");
+                }
+            }
+        }
+        public static void RemoveMod(Component mod)
+        {
+            UnityEngine.Object.Destroy(mod);
+            loadedMods.Remove(mod);
+        }
+        static void CleanMods()
+        {
+            foreach(KeyValuePair<Component, FileInfo> mod in loadedMods)
+            {
+                if (modObjects.GetComponent(mod.Key.GetType()) == null)
+                {
+                    loadedMods.Remove(mod.Key);
+                }
+            }
+        }
+
         public static void Load()
         {
             Log("Starting mod loader...");
@@ -36,35 +82,16 @@ namespace ModLoader
                 Directory.CreateDirectory(assetsPath);
             }
 
-            DirectoryInfo d = new DirectoryInfo(modsPath);
-
             modObjects = new GameObject();
 
             //For each DLL in "Blackwake/Blackwake_Data/Managed/Mods/"
             //Open them, Get the mod class, then add it in the game.
-            modFiles = d.GetFiles("*.dll");
-            foreach (FileInfo file in modFiles)
+            DirectoryInfo d = new DirectoryInfo(modsPath);
+            FindMods(d);
+            foreach(Component mod in loadedMods.Keys)
             {
-                try
-                {
-                    Assembly modDll = Assembly.LoadFrom(modsPath + "/" + file.Name);
-                    Type[] modType = modDll.GetTypes();
-                    foreach (Type t in modType)
-                    {
-                        Log("Found type in " + file.Name + ": " + t.Name);
-                        if (t.IsClass && t.IsSubclassOf(typeof(MonoBehaviour)))
-                        {
-                            modObjects.AddComponent(t);
-                            Log("Loaded '" + t.Name + "' in " + file.Name);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log("Exception raised while loading mod " + file.Name);
-                    Log(e.Message);
-                    Log("Skipped loading this mod");
-                }
+                Log(mod.name);
+                Log("Location: "+ loadedMods[mod].Name);
             }
             Log("All Mods have been Loaded!");
             modObjects.AddComponent<ModGUI.ModGUI>();

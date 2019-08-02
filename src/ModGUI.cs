@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using UnityEngine;
+﻿using UnityEngine;
 namespace ModGUI
 {
     public class ModGUI : MonoBehaviour
@@ -29,6 +26,7 @@ namespace ModGUI
             {
                 debugEnabled = !debugEnabled;
             }
+
         }
 
         void OnGUI()
@@ -53,14 +51,22 @@ namespace ModGUI
                 LogWindow();
             }
         }
-        public static void LogWindow()
+
+        void LogWindow()
         {
             GUI.Label(new Rect(0, 100, 100, 25), "LogWindow");
         }
-        public static void ModWindow()
+        void ModWindow()
         {
             GUI.Label(new Rect(0, 100, 100, 25), "ModWindow");
-
+            scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y-100), scrollPosition, new Rect(0, 0, size.x, 50));
+            int modNum = 0;
+            foreach (Component mod in ModLoader.Loader.modObjects.GetComponents(typeof(Component)))
+            {
+                GUI.Label(new Rect(0, modNum * 25, 100, 25), mod.name);
+                modNum++;
+            }
+            GUI.EndScrollView();
         }
     }
     /*
