@@ -16,6 +16,13 @@ namespace ModLoader
             //UnityEngine.Debug.Log("[BWML]" + output);
         }
 
+        public static void DebugLog(string output)
+        {
+#if DEBUG
+            Log(output);
+#endif // DEBUG
+        }
+
         static void FindMods(DirectoryInfo path)
         {
             FileInfo[] files = path.GetFiles("*.dll");
@@ -27,7 +34,7 @@ namespace ModLoader
                     Type[] modType = modDll.GetTypes();
                     foreach (Type t in modType)
                     {
-                        Log("Found type in " + file.Name + ": " + t.Name);
+                        DebugLog("Found type in " + file.Name + ": " + t.Name);
                         if (t.IsClass && t.IsSubclassOf(typeof(MonoBehaviour)))
                         {
                             loadedMods.Add(modObjects.AddComponent(t), file);
@@ -69,8 +76,8 @@ namespace ModLoader
             string modsPath = Path + "\\Mods";
             string assetsPath = modsPath + "\\Assets";
 
-            Log("Dll dir: "+Path);
-            Log("Mods dir: "+modsPath);
+            DebugLog("Dll dir: "+Path);
+            DebugLog("Mods dir: "+modsPath);
 
             if (!Directory.Exists(modsPath))
             {
@@ -90,8 +97,7 @@ namespace ModLoader
             FindMods(d);
             foreach(Component mod in loadedMods.Keys)
             {
-                Log(mod.name);
-                Log("Location: "+ loadedMods[mod].Name);
+                Log("Mod \"" + mod.name + "\" loaded from \"" + loadedMods[mod].Name + "\"");
             }
             Log("All Mods have been Loaded!");
             modObjects.AddComponent<ModGUI.ModGUI>();
