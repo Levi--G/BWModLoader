@@ -6,6 +6,9 @@ namespace ModLoader
 {
     public static class Loader
     {
+        public static GameObject modObjects;
+        public static FileInfo[] modFiles;
+
         public static void Log(string output)
         {
             Console.WriteLine("[BWML]" + output);
@@ -35,11 +38,12 @@ namespace ModLoader
 
             DirectoryInfo d = new DirectoryInfo(modsPath);
 
-            GameObject modObjects = new GameObject();
+            modObjects = new GameObject();
 
             //For each DLL in "Blackwake/Blackwake_Data/Managed/Mods/"
             //Open them, Get the mod class, then add it in the game.
-            foreach (var file in d.GetFiles("*.dll"))
+            modFiles = d.GetFiles("*.dll");
+            foreach (FileInfo file in modFiles)
             {
                 try
                 {
