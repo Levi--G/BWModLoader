@@ -1,4 +1,9 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEngine;
 namespace ModGUI
 {
     public class ModGUI : MonoBehaviour
@@ -6,10 +11,8 @@ namespace ModGUI
         static bool debugEnabled;
         static int currentScreen;
         static Vector2 scrollPosition;
-        //static Dictionary<string, string> test;
         static Vector2 size;
         static Vector2 position;
-
         void Start()
         {
             currentScreen = 0;
@@ -55,31 +58,54 @@ namespace ModGUI
         void LogWindow()
         {
             GUI.Label(new Rect(0, 100, 100, 25), "LogWindow");
+            int logNum = 0;
+            if (ModLoader.Utils.logs.Any())
+            {
+                scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y - 100), scrollPosition, new Rect(0, 0, size.x, 50));
+                foreach (string log in ModLoader.Utils.logs)
+                {
+                    logNum++;
+                    GUI.Label(new Rect(0, 25 * logNum, 1000, 25), log);
+                }
+                GUI.EndScrollView();
+            }
         }
         void ModWindow()
         {
-            GUI.Label(new Rect(0, 100, 100, 25), "ModWindow");
+            if (GUI.Button(new Rect(0, 100, 100, 25), "Reload all mods"))
+            {
+                ModLoader.Utils.RefreshModFiles();
+            }
             scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y-100), scrollPosition, new Rect(0, 0, size.x, 50));
             int modNum = 0;
-            foreach (Component mod in ModLoader.Loader.modObjects.GetComponents(typeof(Component)))
+            foreach (FileInfo file in ModLoader.Utils.allMods.Keys)
             {
-                GUI.Label(new Rect(0, modNum * 25, 100, 25), mod.name);
-                modNum++;
+                foreach (Type mod in ModLoader.Utils.allMods[file])
+                {
+                    modNum++;
+                    GUI.Label(new Rect(0, modNum * 25, 100, 25), mod.Name);
+                    if (!ModLoader.Utils.IsLoaded(mod))
+                    {
+                        if (GUI.Button(new Rect(100, modNum * 25, 100, 25), "Enable"))
+                        {
+                            ModLoader.Utils.Load(file);
+                        }
+                    }
+                    else
+                    {
+                        if (GUI.Button(new Rect(100, modNum * 25, 100, 25), "Disable"))
+                        {
+                            ModLoader.Utils.Unload(file);
+                        }
+                }
+                    if (GUI.Button(new Rect(200, modNum * 25, 100, 25), "Reload"))
+                    {
+                        ModLoader.Utils.Unload(file);
+                        ModLoader.Utils.RefreshModFiles();
+                    }
+                }
             }
             GUI.EndScrollView();
         }
     }
-    /*
-    static class DebugWindows
-    {
-        public static void LogWindow()
-        {
-            GUI.Label(new Rect(0, 100, 100, 25), "LogWindow");
-        }
-        public static void ModWindow()
-        {
-            GUI.Label(new Rect(0, 100, 100, 25), "ModWindow");
-            scrollPosition = GUI.BeginScrollView(new Rect(10, 300, 100, 100), scrollPosition, new Rect(0, 0, 220, 200));
-        }
-    }*/
 }
