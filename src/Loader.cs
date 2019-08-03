@@ -4,7 +4,7 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 
-namespace BWModLoader
+namespace ModLoader
 {
     public static class Loader
     {

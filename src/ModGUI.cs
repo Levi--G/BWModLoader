@@ -4,8 +4,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
-namespace BWModLoader.ModGUI
+namespace ModLoader.ModGUI
 {
+    public enum ScreenType
+    {
+        MOD,
+        LOG
+    }
+
+    /*
+     * Responsible for drawing the GUI of the ModLoader.
+     */
     public class ModGUI : MonoBehaviour
     {
         static bool debugEnabled;
@@ -15,7 +24,7 @@ namespace BWModLoader.ModGUI
         static Vector2 position;
         void Start()
         {
-            currentScreen = 0;
+            currentScreen = (int)ScreenType.LOG;
             scrollPosition = Vector2.zero;
             debugEnabled = false;
             size = new Vector2(1000, 1000);
@@ -34,18 +43,22 @@ namespace BWModLoader.ModGUI
 
         void OnGUI()
         {
+            // If insert was pressed, render the GUI
             if (debugEnabled)
             {
                 GUI.ModalWindow(0, new Rect(position, size), DebugWindow, "[BWML]Debug Menu");
             }
         }
 
+        // Handles GUI rendering
         void DebugWindow(int windowID)
         {
             GUI.DragWindow(new Rect(0, 0, 10000, 20));
+
+            // Draw screen depending on what screen type is currently selected
             currentScreen = GUI.SelectionGrid(new Rect(25, 25, size.x-50, 75), currentScreen,
                                               new string[] { "Mods", "Logs"}, 2);
-            if(currentScreen == 0)
+            if(currentScreen == (int)ScreenType.MOD)
             {
                 ModWindow();
             }
@@ -83,27 +96,30 @@ namespace BWModLoader.ModGUI
             {
                 foreach (Type mod in allmods[file])
                 {
+                    // Draw checkboxes that Load/Unload mods when they get changed
                     modNum++;
-                    GUI.Label(new Rect(0, modNum * 25, 100, 25), mod.Name);
-                    if (!ModLoader.Instance.IsLoaded(mod))
+                    if (GUI.Toggle(new Rect(100, modNum * 25, 100, 25), ModLoader.Instance.IsLoaded(mod), mod.Name))
                     {
-                        if (GUI.Button(new Rect(100, modNum * 25, 100, 25), "Enable"))
+                        if (!ModLoader.Instance.IsLoaded(mod))
                         {
                             ModLoader.Instance.Load(file);
+                            ModLoader.Instance.Logger.DebugLog("Enabled mod " + mod.Name);
                         }
                     }
                     else
                     {
-                        if (GUI.Button(new Rect(100, modNum * 25, 100, 25), "Disable"))
+                        if (ModLoader.Instance.IsLoaded(mod))
                         {
                             ModLoader.Instance.Unload(file);
+                            ModLoader.Instance.Logger.DebugLog("Disabled mod " + mod.Name);
                         }
-                }
-                    if (GUI.Button(new Rect(200, modNum * 25, 100, 25), "Reload"))
-                    {
-                        ModLoader.Instance.Unload(file);
-                        ModLoader.Instance.RefreshModFiles();
                     }
+                }
+
+                if (GUI.Button(new Rect(200, modNum * 25, 100, 25), "Reload"))
+                {
+                    ModLoader.Instance.Unload(file);
+                    ModLoader.Instance.RefreshModFiles();
                 }
             }
             GUI.EndScrollView();
