@@ -3,40 +3,47 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
-namespace ModLoader
+
+namespace BWModLoader
 {
     public static class Loader
     {
         public static void Load()
         {
-            Utils.Log("Starting mod loader...");
-            Utils.DebugLog("Mods dir: "+Utils.modsPath);
+            string logfile = null;
+#if DEBUG
+            logfile = ModLoader.LogPath + "\\modloader.log";
+#endif
+            ModLogger logger = new ModLogger("[BWML]", logfile);
+            logger.ClearLog();
+            logger.Log("Starting mod loader...");
+            logger.DebugLog("Mods dir: " + ModLoader.ModsPath);
 
-            if (!Directory.Exists(Utils.modsPath))
+            if (!Directory.Exists(ModLoader.ModsPath))
             {
-                Directory.CreateDirectory(Utils.modsPath);
+                Directory.CreateDirectory(ModLoader.ModsPath);
             }
 
-            if (!Directory.Exists(Utils.assetsPath))
+            if (!Directory.Exists(ModLoader.AssetsPath))
             {
-                Directory.CreateDirectory(Utils.assetsPath);
+                Directory.CreateDirectory(ModLoader.AssetsPath);
             }
-
-            Utils.modObjects = new GameObject();
 
             //For each DLL in "Blackwake/Blackwake_Data/Managed/Mods/"
             //Open them, Get the mod class, then add it in the game.
-            Utils.RefreshModFiles();
-            foreach(FileInfo file in Utils.allMods.Keys)
+            ModLoader loader = new ModLoader(logger);
+            ModLoader.Instance = loader;
+            loader.RefreshModFiles();
+            foreach (FileInfo file in loader.GetAllMods().Keys)
             {
-                Utils.Load(file);
+                loader.Load(file);
             }
-            Utils.Log("All Mods have been Loaded!");
-            Utils.modObjects.AddComponent<ModGUI.ModGUI>();
-            Utils.Log("GUI has been loaded");
+            logger.Log("All Mods have been Loaded!");
+            loader.ModObjects.AddComponent<ModGUI.ModGUI>();
+            logger.Log("GUI has been loaded");
 
             //Keep mods active
-            UnityEngine.Object.DontDestroyOnLoad(Utils.modObjects);
+            UnityEngine.Object.DontDestroyOnLoad(loader.ModObjects);
         }
     }
 }
