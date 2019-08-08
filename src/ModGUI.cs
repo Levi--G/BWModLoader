@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 namespace BWModLoader.ModGUI
 {
@@ -44,24 +45,42 @@ namespace BWModLoader.ModGUI
         {
             GUI.DragWindow(new Rect(0, 0, 10000, 20));
             currentScreen = GUI.SelectionGrid(new Rect(25, 25, size.x-50, 75), currentScreen,
-                                              new string[] { "Mods", "Logs"}, 2);
-            if(currentScreen == 0)
+                                              new string[] { "Mods", "Logs", "Debug"}, 3);
+            switch (currentScreen)
             {
-                ModWindow();
-            }
-            else
-            {
-                LogWindow();
+                case 0:
+                    ModWindow();
+                    break;
+                case 1:
+                    LogWindow();
+                    break;
+                case 2:
+                    TestingWindow();
+                    break;
             }
         }
-
+        void TestingWindow()
+        {
+            if(GUI.Button(new Rect(0,100,size.x,25), "Get Refrences"))
+            {
+                Assembly[] asms = AppDomain.CurrentDomain.GetAssemblies();
+                foreach(Assembly a in asms)
+                {
+                    ModLoader.Instance.Logger.Log(a.FullName);
+                }
+            }
+        }
         void LogWindow()
         {
-            GUI.Label(new Rect(0, 100, 100, 25), "LogWindow");
             int logNum = 0;
             if (ModLoader.Instance.Logger.Logs.Any())
             {
-                scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y - 100), scrollPosition, new Rect(0, 0, size.x, 50));
+                scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y - 100), 
+                                                     scrollPosition, new Rect(0, 0, size.x, 25*ModLoader.Instance.Logger.Logs.Count));
+                if(GUI.Button(new Rect(0,0,size.x,25), "Clear Logs"))
+                {
+                    ModLoader.Instance.Logger.Logs.Clear();
+                }
                 foreach (string log in ModLoader.Instance.Logger.Logs)
                 {
                     logNum++;
@@ -72,38 +91,35 @@ namespace BWModLoader.ModGUI
         }
         void ModWindow()
         {
-            if (GUI.Button(new Rect(0, 100, 100, 25), "Reload all mods"))
+            scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y-100), scrollPosition, new Rect(0, 0, size.x, 50));
+            if (GUI.Button(new Rect(0, 0, size.x, 25), "Reload all mods"))
             {
                 ModLoader.Instance.RefreshModFiles();
             }
-            scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y-100), scrollPosition, new Rect(0, 0, size.x, 50));
             int modNum = 0;
             var allmods = ModLoader.Instance.GetAllMods();
             foreach (FileInfo file in allmods.Keys)
             {
-                foreach (Type mod in allmods[file])
+                modNum++;
+                GUI.Label(new Rect(0, modNum * 25, 100, 25), file.Name);
+                if (!ModLoader.Instance.IsLoaded(file))
                 {
-                    modNum++;
-                    GUI.Label(new Rect(0, modNum * 25, 100, 25), mod.Name);
-                    if (!ModLoader.Instance.IsLoaded(mod))
+                    if (GUI.Button(new Rect(100, modNum * 25, 100, 25), "Enable"))
                     {
-                        if (GUI.Button(new Rect(100, modNum * 25, 100, 25), "Enable"))
-                        {
-                            ModLoader.Instance.Load(file);
-                        }
+                        ModLoader.Instance.Load(file);
                     }
-                    else
-                    {
-                        if (GUI.Button(new Rect(100, modNum * 25, 100, 25), "Disable"))
-                        {
-                            ModLoader.Instance.Unload(file);
-                        }
                 }
-                    if (GUI.Button(new Rect(200, modNum * 25, 100, 25), "Reload"))
+                else
+                {
+                    if (GUI.Button(new Rect(100, modNum * 25, 100, 25), "Disable"))
                     {
                         ModLoader.Instance.Unload(file);
-                        ModLoader.Instance.RefreshModFiles();
                     }
+                }
+                if (GUI.Button(new Rect(200, modNum * 25, 100, 25), "Reload"))
+                {
+                    ModLoader.Instance.Unload(file);
+                    ModLoader.Instance.RefreshModFiles();
                 }
             }
             GUI.EndScrollView();
