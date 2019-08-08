@@ -155,7 +155,7 @@ namespace BWModLoader.ModGUI
                 modNum++;
                 //GUI.Label(new Rect(0, modNum * 25, 100, 25), mod.Name);
                 //GUI.Toggle(new Rect(0, modNum * 25, 100, 25), ModLoader.Instance.IsLoaded(mod), mod.Name);
-                bool newCheckboxStatus = GUI.Toggle(new Rect(5, modNum * 25, 100, 25), ModLoader.Instance.IsLoaded(file), file.Name);
+                bool newCheckboxStatus = GUI.Toggle(new Rect(5, modNum * 25, 150, 25), ModLoader.Instance.IsLoaded(file), file.Name);
                 if (newCheckboxStatus)
                 {
                     if (!ModLoader.Instance.IsLoaded(file))
@@ -172,11 +172,18 @@ namespace BWModLoader.ModGUI
                 }
 
                 // Reload the respective Mod
-                if (GUI.Button(new Rect(105, modNum * 25, 100, 25), "Reload"))
+                if (GUI.Button(new Rect(155, modNum * 25, 100, 25), "Reload"))
                 {
                     ModLoader.Instance.RefreshModFiles();
                 }
-               
+                if (GUI.Button(new Rect(255, modNum * 25, 100, 25), "Menu"))
+                {
+                    foreach(Type mod in ModLoader.Instance.GetAllMods()[file])
+                    {
+                        ModLoader.Instance.ModObjects.GetComponent(mod).BroadcastMessage("OnMenu");
+                    }
+                }
+
             }
             GUI.EndScrollView();
         }
