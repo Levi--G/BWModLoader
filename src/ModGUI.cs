@@ -150,7 +150,7 @@ namespace BWModLoader.ModGUI
         void ModWindow()
         {
             scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y-100), scrollPosition, new Rect(0, 0, size.x, 50));
-            if (GUI.Button(new Rect(0, 0, size.x, 25), "Reload all mods"))
+            if (GUI.Button(new Rect(0, 0, size.x, 25), "Refresh all mods"))
             {
                 ModLoader.Instance.RefreshModFiles();
                 RefreshMods();

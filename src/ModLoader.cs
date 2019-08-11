@@ -63,24 +63,45 @@ namespace BWModLoader
         {
             DirectoryInfo dir = new DirectoryInfo(ModsPath);
             //Unloads & clears known mods
-            foreach (var mod in allMods)
+            foreach (var mod in GetAllMods())
             {
-                Unload(mod.Key);
+                RemoveModFile(mod.Key);
             }
-            allMods.Clear();
 
             //Find all files to refresh
             foreach (FileInfo file in dir.GetFiles("*.dll"))
             {
-                //Save mod types and file path
-                allMods.Add(file, LoadModTypes(file));
-                Logger.Log("Found dll: " + file.Name);
+                AddModFile(file);
             }
         }
 
         /// <summary>
-        /// Refreshes and reloads mod
+        /// Adds and registers a modfile
         /// </summary>
+        public void AddModFile(FileInfo file)
+        {
+            //Save mod types and file path
+            allMods.Add(file, LoadModTypes(file));
+            Logger.Log("Added dll: " + file.Name);
+        }
+
+        /// <summary>
+        /// Adds and registers a modfile
+        /// </summary>
+        public void RemoveModFile(FileInfo file)
+        {
+            Unload(file);
+            //Save mod types and file path
+            if (allMods.ContainsKey(file))
+                allMods.Remove(file);
+            Logger.Log("Removed dll: " + file.Name);
+        }
+
+        /// <summary>
+        /// Refreshes and reloads mod
+        /// Has no use
+        /// </summary>
+        [Obsolete("Method has no use in current implementation")]
         public void ReloadModFile(FileInfo file)
         {
             if (!allMods.TryGetValue(file, out var types)) { return; }
