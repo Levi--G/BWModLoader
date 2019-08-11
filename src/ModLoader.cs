@@ -44,9 +44,16 @@ namespace BWModLoader
         /// </summary>
         /// <param name="mod"></param>
         /// <returns></returns>
-        public bool IsLoaded(Type mod)
+        public bool IsLoaded(FileInfo file)
         {
-            return ModObjects.GetComponent(mod) != null;
+            foreach (Type mod in allMods[file])
+            {
+                if (ModObjects.GetComponent(mod) != null)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -104,10 +111,10 @@ namespace BWModLoader
                     Type[] modType = modDll.GetTypes();
                     foreach (Type t in modType)
                     {
-                        Logger.Log("Found type in " + file.Name + ": " + t.Name);
                         if (t.IsClass && typeof(MonoBehaviour).IsAssignableFrom(t) && !t.IsAbstract && t.IsPublic)
                         {
                             mods.Add(t);
+                            Logger.Log("Found type in " + file.Name + ": " + t.Name);
                         }
                     }
                 }
@@ -132,7 +139,7 @@ namespace BWModLoader
                 foreach (Type mod in types)
                 {
                     //if mod is not loaded
-                    if (!IsLoaded(mod))
+                    if (ModObjects.GetComponent(mod) == null)
                     {
                         ModObjects.AddComponent(mod);
                         Logger.Log("Loaded: " + mod.Name + " From file: " + file.Name);
@@ -149,7 +156,7 @@ namespace BWModLoader
                 foreach (Type mod in types)
                 {
                     //if mod is loaded
-                    if (IsLoaded(mod))
+                    if (ModObjects.GetComponent(mod) != null)
                     {
                         UnityEngine.Object.Destroy(ModObjects.GetComponent(mod));
                         Logger.Log("Unloaded: " + mod.Name + " From file: " + file.Name);

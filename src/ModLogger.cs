@@ -6,6 +6,9 @@ using System.Text;
 
 namespace BWModLoader
 {
+    /// <summary>
+    /// Handles logging
+    /// </summary>
     public class ModLogger
     {
         string prefix;
@@ -27,6 +30,9 @@ namespace BWModLoader
             }
         }
 
+        /// <summary>
+        /// Clears ingame log and log files
+        /// </summary>
         public void ClearLog()
         {
             Logs.Clear();
@@ -49,6 +55,9 @@ namespace BWModLoader
             }
         }
 
+        /// <summary>
+        /// Only logs messages in Debug builds of the modloader
+        /// </summary>
         public void DebugLog(string output)
         {
 #if DEBUG
