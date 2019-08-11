@@ -46,9 +46,6 @@ namespace BWModLoader.ModGUI
         /// </summary>
         void Update()
         {
-            //Update mods
-            allmods = ModLoader.Instance.GetAllMods();
-
             if (Input.GetKeyUp("insert"))
             {
                 debugEnabled = !debugEnabled;

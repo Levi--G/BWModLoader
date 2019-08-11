@@ -11,8 +11,8 @@ namespace BWModLoader
         public static ModLoader Instance { get; internal set; }
 
         private static readonly string dllpath = new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath;
-        private static readonly string folderPath = Path.GetDirectoryName(dllpath);
-        public static string ModsPath => folderPath + "\\Mods";
+        public static string FolderPath => Path.GetDirectoryName(dllpath);
+        public static string ModsPath => FolderPath + "\\Mods";
         public static string AssetsPath => ModsPath + "\\Assets";
         public static string LogPath => ModsPath + "\\Logs";
 
