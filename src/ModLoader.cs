@@ -72,6 +72,22 @@ namespace BWModLoader
         }
 
         /// <summary>
+        /// Refreshes and reloads mod
+        /// </summary>
+        public void ReloadModFile(FileInfo file)
+        {
+            if (!allMods.TryGetValue(file, out var types)) { return; }
+
+            Unload(file);
+
+            //Save mod types and file path
+            allMods[file] = LoadModTypes(file);
+            Logger.Log("Refreshed dll: " + file.Name);
+
+            Load(file);
+        }
+
+        /// <summary>
         /// Finds and loads all mod classes in a file
         /// </summary>
         /// <param name="file">The file to load</param>
@@ -81,14 +97,18 @@ namespace BWModLoader
             List<Type> mods = new List<Type>();
             try
             {
-                Assembly modDll = Assembly.LoadFrom(file.FullName);
-                Type[] modType = modDll.GetTypes();
-                foreach (Type t in modType)
+                file.Refresh();
+                if (file.Exists)
                 {
-                    Logger.Log("Found type in " + file.Name + ": " + t.Name);
-                    if (t.IsClass && typeof(MonoBehaviour).IsAssignableFrom(t) && !t.IsAbstract && t.IsPublic)
+                    Assembly modDll = Assembly.LoadFile(file.FullName);
+                    Type[] modType = modDll.GetTypes();
+                    foreach (Type t in modType)
                     {
-                        mods.Add(t);
+                        Logger.Log("Found type in " + file.Name + ": " + t.Name);
+                        if (t.IsClass && typeof(MonoBehaviour).IsAssignableFrom(t) && !t.IsAbstract && t.IsPublic)
+                        {
+                            mods.Add(t);
+                        }
                     }
                 }
             }

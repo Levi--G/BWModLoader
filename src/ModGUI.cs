@@ -8,11 +8,13 @@ namespace BWModLoader.ModGUI
 {
     public class ModGUI : MonoBehaviour
     {
-        static bool debugEnabled;
-        static int currentScreen;
-        static Vector2 scrollPosition;
-        static Vector2 size;
-        static Vector2 position;
+        bool debugEnabled;
+        int currentScreen;
+        Vector2 scrollPosition;
+        Vector2 size;
+        Vector2 position;
+        Dictionary<FileInfo, List<Type>> allmods;
+
         void Start()
         {
             currentScreen = 0;
@@ -23,13 +25,18 @@ namespace BWModLoader.ModGUI
                                    (Screen.height / 2) - (size.x / 2));
         }
 
+        void RefreshMods()
+        {
+            allmods = ModLoader.Instance.GetAllMods();
+        }
+
         void Update()
         {
             if (Input.GetKeyUp("insert"))
             {
                 debugEnabled = !debugEnabled;
+                RefreshMods();
             }
-
         }
 
         void OnGUI()
@@ -70,15 +77,16 @@ namespace BWModLoader.ModGUI
                 GUI.EndScrollView();
             }
         }
+
         void ModWindow()
         {
             if (GUI.Button(new Rect(0, 100, 100, 25), "Reload all mods"))
             {
                 ModLoader.Instance.RefreshModFiles();
+                RefreshMods();
             }
             scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y-100), scrollPosition, new Rect(0, 0, size.x, 50));
             int modNum = 0;
-            var allmods = ModLoader.Instance.GetAllMods();
             foreach (FileInfo file in allmods.Keys)
             {
                 foreach (Type mod in allmods[file])
@@ -101,8 +109,8 @@ namespace BWModLoader.ModGUI
                 }
                     if (GUI.Button(new Rect(200, modNum * 25, 100, 25), "Reload"))
                     {
-                        ModLoader.Instance.Unload(file);
-                        ModLoader.Instance.RefreshModFiles();
+                        ModLoader.Instance.ReloadModFile(file);
+                        RefreshMods();
                     }
                 }
             }
