@@ -17,7 +17,7 @@ namespace BWModLoader
         /// <summary>
         /// Log history
         /// </summary>
-        public List<string> Logs { get; } = new List<string>();
+        public static List<string> Logs { get; } = new List<string>();
 
         public ModLogger(string prefix, string file = null)
         {
