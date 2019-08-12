@@ -32,7 +32,8 @@ namespace BWModLoader
         /// <summary>
         /// GameObject that holds our mods
         /// </summary>
-        public GameObject ModObjects { get; } = new GameObject();
+        public Dictionary<FileInfo, GameObject> ModObjects = new Dictionary<FileInfo, GameObject>();
+        //public GameObject ModObjects { get; } = new GameObject();
 
         public ModLoader(ModLogger logger)
         {
@@ -46,12 +47,9 @@ namespace BWModLoader
         /// <returns></returns>
         public bool IsLoaded(FileInfo file)
         {
-            foreach (Type mod in allMods[file])
+            if (ModObjects.ContainsKey(file))
             {
-                if (ModObjects.GetComponent(mod) != null)
-                {
-                    return true;
-                }
+                return true;
             }
             return false;
         }
@@ -160,9 +158,10 @@ namespace BWModLoader
                 foreach (Type mod in types)
                 {
                     //if mod is not loaded
-                    if (ModObjects.GetComponent(mod) == null)
+                    if (!IsLoaded(file))
                     {
-                        ModObjects.AddComponent(mod);
+                        ModObjects.Add(file, new GameObject(file.Name));
+                        ModObjects[file].AddComponent(mod);
                         Logger.Log("Loaded: " + mod.Name + " From file: " + file.Name);
                     }
                 }
@@ -174,15 +173,14 @@ namespace BWModLoader
         {
             if (allMods.TryGetValue(file, out var types))
             {
-                foreach (Type mod in types)
+                //if mod is loaded
+                if (IsLoaded(file))
                 {
-                    //if mod is loaded
-                    if (ModObjects.GetComponent(mod) != null)
-                    {
-                        UnityEngine.Object.Destroy(ModObjects.GetComponent(mod));
-                        Logger.Log("Unloaded: " + mod.Name + " From file: " + file.Name);
-                    }
+                    UnityEngine.Object.Destroy(ModObjects[file]);
+                    ModObjects.Remove(file);
+                    Logger.Log("Unloaded: " + file.Name);
                 }
+                
             }
         }
     }

@@ -186,7 +186,7 @@ namespace BWModLoader.ModGUI
                 {
                     foreach (Type mod in ModLoader.Instance.GetAllMods()[file])
                     {
-                        ModLoader.Instance.ModObjects.GetComponent(mod).BroadcastMessage("OnSettingsMenu");
+                        ModLoader.Instance.ModObjects[file].BroadcastMessage("OnSettingsMenu");
                     }
                 }
 
