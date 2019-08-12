@@ -114,7 +114,6 @@ namespace BWModLoader.ModGUI
                         ModLoader.Instance.Logger.Log(file.Name);
                     }
                 }
-
             }
         }
 

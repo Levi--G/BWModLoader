@@ -162,6 +162,7 @@ namespace BWModLoader
                     {
                         ModObjects.Add(file, new GameObject(file.Name));
                         ModObjects[file].AddComponent(mod);
+                        UnityEngine.Object.DontDestroyOnLoad(ModObjects[file]);
                         Logger.Log("Loaded: " + mod.Name + " From file: " + file.Name);
                     }
                 }
