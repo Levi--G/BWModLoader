@@ -19,11 +19,11 @@ namespace BWModLoader.ModGUI
     /// </summary>
     public class ModGUI : MonoBehaviour
     {
-        static bool debugEnabled;
-        static int currentScreen;
-        static Vector2 scrollPosition;
-        static Vector2 size;
-        static Vector2 position;
+        bool debugEnabled;
+        int currentScreen;
+        Vector2 scrollPosition;
+        Vector2 size;
+        Vector2 position;
         Dictionary<FileInfo, List<Type>> allmods;
 
         void Start()
@@ -36,19 +36,21 @@ namespace BWModLoader.ModGUI
                                    (Screen.height / 2) - (size.x / 2));
         }
 
+        void RefreshMods()
+        {
+            allmods = ModLoader.Instance.GetAllMods();
+        }
+
         /// <summary>
         /// Toggles the Window when the Hotkey is pressed
         /// </summary>
         void Update()
-        {   
-            //Update mods
-            allmods = ModLoader.Instance.GetAllMods();
-
+        {
             if (Input.GetKeyUp("insert"))
             {
                 debugEnabled = !debugEnabled;
+                RefreshMods();
             }
-
         }
 
         /// <summary>
@@ -69,8 +71,8 @@ namespace BWModLoader.ModGUI
         void DebugWindow(int windowID)
         {
             GUI.DragWindow(new Rect(0, 0, 10000, 20));
-            currentScreen = GUI.SelectionGrid(new Rect(25, 25, size.x-50, 75), currentScreen,
-                                              new string[] { "Mods", "Logs", "Debug"}, 3);
+            currentScreen = GUI.SelectionGrid(new Rect(25, 25, size.x - 50, 75), currentScreen,
+                                              new string[] { "Mods", "Logs", "Debug" }, 3);
             switch (currentScreen)
             {
                 case (int)ScreenType.MOD:
@@ -86,10 +88,10 @@ namespace BWModLoader.ModGUI
         }
         void TestingWindow()
         {
-            if(GUI.Button(new Rect(0,100,size.x,25), "Get Refrences"))
+            if (GUI.Button(new Rect(0, 100, size.x, 25), "Get Refrences"))
             {
                 Assembly[] asms = AppDomain.CurrentDomain.GetAssemblies();
-                foreach(Assembly a in asms)
+                foreach (Assembly a in asms)
                 {
                     ModLoader.Instance.Logger.Log(a.FullName);
                 }
@@ -97,7 +99,7 @@ namespace BWModLoader.ModGUI
             if (GUI.Button(new Rect(0, 125, size.x, 25), "Get all mods"))
             {
                 ModLoader.Instance.Logger.Log("Loaded Mods:");
-                foreach(FileInfo file in allmods.Keys)
+                foreach (FileInfo file in allmods.Keys)
                 {
                     if (ModLoader.Instance.IsLoaded(file))
                     {
@@ -112,7 +114,6 @@ namespace BWModLoader.ModGUI
                         ModLoader.Instance.Logger.Log(file.Name);
                     }
                 }
-
             }
         }
 
@@ -122,15 +123,15 @@ namespace BWModLoader.ModGUI
         void LogWindow()
         {
             int logNum = 0;
-            if (ModLoader.Instance.Logger.Logs.Any())
+            if (ModLogger.Logs.Any())
             {
-                scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y - 100), 
-                                                     scrollPosition, new Rect(0, 0, size.x, 25*ModLoader.Instance.Logger.Logs.Count));
-                if(GUI.Button(new Rect(0,0,size.x,25), "Clear Logs"))
+                scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y - 100),
+                                                     scrollPosition, new Rect(0, 0, size.x, 25 * ModLogger.Logs.Count));
+                if (GUI.Button(new Rect(0, 0, size.x, 25), "Clear Logs"))
                 {
-                    ModLoader.Instance.Logger.Logs.Clear();
+                    ModLogger.Logs.Clear();
                 }
-                foreach (string log in ModLoader.Instance.Logger.Logs)
+                foreach (string log in ModLogger.Logs)
                 {
                     logNum++;
                     GUI.Label(new Rect(0, 25 * logNum, 1000, 25), log);
@@ -144,10 +145,11 @@ namespace BWModLoader.ModGUI
         /// </summary>
         void ModWindow()
         {
-            scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y-100), scrollPosition, new Rect(0, 0, size.x, 50));
-            if (GUI.Button(new Rect(0, 0, size.x, 25), "Reload all mods"))
+            scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y - 100), scrollPosition, new Rect(0, 0, size.x, 50));
+            if (GUI.Button(new Rect(0, 0, size.x, 25), "Refresh all mods"))
             {
                 ModLoader.Instance.RefreshModFiles();
+                RefreshMods();
             }
             int modNum = 0;
             foreach (FileInfo file in allmods.Keys)
@@ -161,6 +163,7 @@ namespace BWModLoader.ModGUI
                     if (!ModLoader.Instance.IsLoaded(file))
                     {
                         ModLoader.Instance.Load(file);
+                        RefreshMods();
                     }
                 }
                 else
@@ -168,6 +171,7 @@ namespace BWModLoader.ModGUI
                     if (ModLoader.Instance.IsLoaded(file))
                     {
                         ModLoader.Instance.Unload(file);
+                        RefreshMods();
                     }
                 }
 
@@ -175,12 +179,13 @@ namespace BWModLoader.ModGUI
                 if (GUI.Button(new Rect(155, modNum * 25, 100, 25), "Reload"))
                 {
                     ModLoader.Instance.RefreshModFiles();
+                    RefreshMods();
                 }
                 if (GUI.Button(new Rect(255, modNum * 25, 100, 25), "Menu"))
                 {
-                    foreach(Type mod in ModLoader.Instance.GetAllMods()[file])
+                    foreach (Type mod in ModLoader.Instance.GetAllMods()[file])
                     {
-                        ModLoader.Instance.ModObjects.GetComponent(mod).BroadcastMessage("OnMenu");
+                        ModLoader.Instance.ModObjects[file].BroadcastMessage("OnSettingsMenu");
                     }
                 }
 

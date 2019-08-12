@@ -39,11 +39,10 @@ namespace BWModLoader
                 loader.Load(file);
             }
             logger.Log("All Mods have been Loaded!");
-            loader.ModObjects.AddComponent<ModGUI.ModGUI>();
+            GameObject ModGUI = new GameObject();
+            ModGUI.AddComponent<ModGUI.ModGUI>();
             logger.Log("GUI has been loaded");
-
-            //Keep mods active
-            UnityEngine.Object.DontDestroyOnLoad(loader.ModObjects);
+            UnityEngine.Object.DontDestroyOnLoad(ModGUI);
         }
     }
 }

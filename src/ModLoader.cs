@@ -11,8 +11,8 @@ namespace BWModLoader
         public static ModLoader Instance { get; internal set; }
 
         private static readonly string dllpath = new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath;
-        private static readonly string folderPath = Path.GetDirectoryName(dllpath);
-        public static string ModsPath => folderPath + "\\Mods";
+        public static string FolderPath => Path.GetDirectoryName(dllpath);
+        public static string ModsPath => FolderPath + "\\Mods";
         public static string AssetsPath => ModsPath + "\\Assets";
         public static string LogPath => ModsPath + "\\Logs";
 
@@ -32,7 +32,8 @@ namespace BWModLoader
         /// <summary>
         /// GameObject that holds our mods
         /// </summary>
-        public GameObject ModObjects { get; } = new GameObject();
+        public Dictionary<FileInfo, GameObject> ModObjects = new Dictionary<FileInfo, GameObject>();
+        //public GameObject ModObjects { get; } = new GameObject();
 
         public ModLoader(ModLogger logger)
         {
@@ -46,12 +47,9 @@ namespace BWModLoader
         /// <returns></returns>
         public bool IsLoaded(FileInfo file)
         {
-            foreach (Type mod in allMods[file])
+            if (ModObjects.ContainsKey(file))
             {
-                if(ModObjects.GetComponent(mod) != null)
-                {
-                    return true;
-                }
+                return true;
             }
             return false;
         }
@@ -63,19 +61,56 @@ namespace BWModLoader
         {
             DirectoryInfo dir = new DirectoryInfo(ModsPath);
             //Unloads & clears known mods
-            foreach (var mod in allMods)
+            foreach (var mod in GetAllMods())
             {
-                Unload(mod.Key);
+                RemoveModFile(mod.Key);
             }
-            allMods.Clear();
 
             //Find all files to refresh
             foreach (FileInfo file in dir.GetFiles("*.dll"))
             {
-                //Save mod types and file path
-                allMods.Add(file, LoadModTypes(file));
-                Logger.Log("Found dll: " + file.Name);
+                AddModFile(file);
             }
+        }
+
+        /// <summary>
+        /// Adds and registers a modfile
+        /// </summary>
+        public void AddModFile(FileInfo file)
+        {
+            //Save mod types and file path
+            allMods.Add(file, LoadModTypes(file));
+            Logger.Log("Added dll: " + file.Name);
+        }
+
+        /// <summary>
+        /// Adds and registers a modfile
+        /// </summary>
+        public void RemoveModFile(FileInfo file)
+        {
+            Unload(file);
+            //Save mod types and file path
+            if (allMods.ContainsKey(file))
+                allMods.Remove(file);
+            Logger.Log("Removed dll: " + file.Name);
+        }
+
+        /// <summary>
+        /// Refreshes and reloads mod
+        /// Has no use
+        /// </summary>
+        [Obsolete("Method has no use in current implementation")]
+        public void ReloadModFile(FileInfo file)
+        {
+            if (!allMods.TryGetValue(file, out var types)) { return; }
+
+            Unload(file);
+
+            //Save mod types and file path
+            allMods[file] = LoadModTypes(file);
+            Logger.Log("Refreshed dll: " + file.Name);
+
+            Load(file);
         }
 
         /// <summary>
@@ -88,14 +123,18 @@ namespace BWModLoader
             List<Type> mods = new List<Type>();
             try
             {
-                Assembly modDll = Assembly.Load(File.ReadAllBytes(file.FullName));
-                Type[] modType = modDll.GetTypes();
-                foreach (Type t in modType)
+                file.Refresh();
+                if (file.Exists)
                 {
-                    if (t.IsClass && typeof(MonoBehaviour).IsAssignableFrom(t) && !t.IsAbstract && t.IsPublic)
+                    Assembly modDll = Assembly.LoadFile(file.FullName);
+                    Type[] modType = modDll.GetTypes();
+                    foreach (Type t in modType)
                     {
-                        mods.Add(t);
-                        Logger.Log("Found type in " + file.Name + ": " + t.Name);
+                        if (t.IsClass && typeof(MonoBehaviour).IsAssignableFrom(t) && !t.IsAbstract && t.IsPublic)
+                        {
+                            mods.Add(t);
+                            Logger.Log("Found type in " + file.Name + ": " + t.Name);
+                        }
                     }
                 }
             }
@@ -119,9 +158,11 @@ namespace BWModLoader
                 foreach (Type mod in types)
                 {
                     //if mod is not loaded
-                    if (ModObjects.GetComponent(mod) == null)
+                    if (!IsLoaded(file))
                     {
-                        ModObjects.AddComponent(mod);
+                        ModObjects.Add(file, new GameObject(file.Name));
+                        ModObjects[file].AddComponent(mod);
+                        UnityEngine.Object.DontDestroyOnLoad(ModObjects[file]);
                         Logger.Log("Loaded: " + mod.Name + " From file: " + file.Name);
                     }
                 }
@@ -133,15 +174,14 @@ namespace BWModLoader
         {
             if (allMods.TryGetValue(file, out var types))
             {
-                foreach (Type mod in types)
+                //if mod is loaded
+                if (IsLoaded(file))
                 {
-                    //if mod is loaded
-                    if (ModObjects.GetComponent(mod) != null)
-                    {
-                        UnityEngine.Object.Destroy(ModObjects.GetComponent(mod));
-                        Logger.Log("Unloaded: " + mod.Name + " From file: " + file.Name);
-                    }
+                    UnityEngine.Object.Destroy(ModObjects[file]);
+                    ModObjects.Remove(file);
+                    Logger.Log("Unloaded: " + file.Name);
                 }
+                
             }
         }
     }
