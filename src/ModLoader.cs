@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -13,6 +14,8 @@ namespace BWModLoader
         private static readonly string dllpath = new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath;
         public static string FolderPath => Path.GetDirectoryName(dllpath);
         public static string ModsPath => FolderPath + "\\Mods";
+        public static string ClientModsPath => ModsPath + "\\Client";
+        public static string ServerModsPath => ModsPath + "\\Server";
         public static string AssetsPath => ModsPath + "\\Assets";
         public static string LogPath => ModsPath + "\\Logs";
 
@@ -21,167 +24,132 @@ namespace BWModLoader
         /// <summary>
         /// All known mods files
         /// </summary>
-        private readonly Dictionary<FileInfo, List<Type>> allMods = new Dictionary<FileInfo, List<Type>>();
+        private readonly List<Mod> allMods = new List<Mod>();
 
         /// <summary>
         /// Gets all known mods files
         /// </summary>
-        /// Prevent modification from outside by making copy
-        public Dictionary<FileInfo, List<Type>> GetAllMods() => new Dictionary<FileInfo, List<Type>>(allMods);
+        public IEnumerable<Mod> AllMods => allMods;
 
         /// <summary>
         /// GameObject that holds our mods
         /// </summary>
-        public Dictionary<FileInfo, GameObject> ModObjects = new Dictionary<FileInfo, GameObject>();
-        //public GameObject ModObjects { get; } = new GameObject();
+        public GameObject GameObject { get; } = new GameObject();
 
         public ModLoader(ModLogger logger)
         {
             this.Logger = logger;
-        }
-
-        /// <summary>
-        /// Checks if a mod is loaded
-        /// </summary>
-        /// <param name="mod"></param>
-        /// <returns></returns>
-        public bool IsLoaded(FileInfo file)
-        {
-            if (ModObjects.ContainsKey(file))
-            {
-                return true;
-            }
-            return false;
+            UnityEngine.Object.DontDestroyOnLoad(GameObject);
         }
 
         /// <summary>
         /// Refresh all known mods
         /// </summary>
-        public void RefreshModFiles()
+        public void LoadClientModFiles()
         {
-            DirectoryInfo dir = new DirectoryInfo(ModsPath);
             //Unloads & clears known mods
-            foreach (var mod in GetAllMods())
-            {
-                RemoveModFile(mod.Key);
-            }
+            //foreach (var mod in AllMods.Where(m=>m.FullPath.Contains(ClientModsPath)))
+            //{
+            //    RemoveMod(mod);
+            //}
 
-            //Find all files to refresh
-            foreach (FileInfo file in dir.GetFiles("*.dll"))
-            {
-                AddModFile(file);
-            }
+            //Find all files to load
+            var mods = Directory.GetFiles(ClientModsPath, "*.dll").Select(file => AddMod(file)).ToList();
+            //load them in the game
+            mods.ForEach(m => LoadInGame(m));
         }
 
         /// <summary>
         /// Adds and registers a modfile
         /// </summary>
-        public void AddModFile(FileInfo file)
+        public Mod AddMod(string file)
         {
-            //Save mod types and file path
-            allMods.Add(file, LoadModTypes(file));
-            Logger.Log("Added dll: " + file.Name);
+            var mod = new Mod(file);
+            allMods.Add(mod);
+            LoadModTypes(mod);
+            Logger.Log("Added dll: " + mod.Name);
+            return mod;
         }
 
         /// <summary>
         /// Adds and registers a modfile
         /// </summary>
-        public void RemoveModFile(FileInfo file)
+        public void RemoveMod(Mod mod)
         {
-            Unload(file);
+            UnloadFromGame(mod);
             //Save mod types and file path
-            if (allMods.ContainsKey(file))
-                allMods.Remove(file);
-            Logger.Log("Removed dll: " + file.Name);
-        }
-
-        /// <summary>
-        /// Refreshes and reloads mod
-        /// Has no use
-        /// </summary>
-        [Obsolete("Method has no use in current implementation")]
-        public void ReloadModFile(FileInfo file)
-        {
-            if (!allMods.TryGetValue(file, out var types)) { return; }
-
-            Unload(file);
-
-            //Save mod types and file path
-            allMods[file] = LoadModTypes(file);
-            Logger.Log("Refreshed dll: " + file.Name);
-
-            Load(file);
+            if (allMods.Contains(mod))
+                allMods.Remove(mod);
+            Logger.Log("Removed dll: " + mod.Name);
         }
 
         /// <summary>
         /// Finds and loads all mod classes in a file
         /// </summary>
-        /// <param name="file">The file to load</param>
+        /// <param name="mod">The file to load</param>
         /// <returns></returns>
-        private List<Type> LoadModTypes(FileInfo file)
+        private void LoadModTypes(Mod mod)
         {
-            List<Type> mods = new List<Type>();
             try
             {
-                file.Refresh();
-                if (file.Exists)
+                mod.Types = new List<Mod.ModType>();
+                if (File.Exists(mod.FullPath))
                 {
-                    Assembly modDll = Assembly.LoadFile(file.FullName);
+                    Assembly modDll = Assembly.LoadFile(mod.FullPath);
                     Type[] modType = modDll.GetTypes();
                     foreach (Type t in modType)
                     {
-                        if (t.IsClass && typeof(MonoBehaviour).IsAssignableFrom(t) && !t.IsAbstract && t.IsPublic)
+                        if (t.IsClass && !t.IsAbstract && t.IsPublic && typeof(MonoBehaviour).IsAssignableFrom(t))
                         {
-                            mods.Add(t);
-                            Logger.Log("Found type in " + file.Name + ": " + t.Name);
+                            mod.Types.Add(new Mod.ModType(t));
+                            Logger.Log("Found type in " + mod.Name + ": " + t.Name);
                         }
                     }
                 }
             }
             catch (Exception e)
             {
-                Logger.Log("Exception raised while loading mod " + file.Name);
+                Logger.Log("Exception raised while loading mod " + mod.Name);
                 Logger.Log(e.Message);
                 Logger.Log("Skipped loading this mod");
             }
-            return mods;
         }
 
         /// <summary>
         /// will load a mod from memory
         /// </summary>
-        /// <param name="file"></param>
-        public void Load(FileInfo file)
+        /// <param name="mod"></param>
+        public void LoadInGame(Mod mod)
         {
-            if (allMods.TryGetValue(file, out var types))
+            if (mod.TypesLoaded)
             {
-                foreach (Type mod in types)
+                foreach (Mod.ModType t in mod.Types)
                 {
                     //if mod is not loaded
-                    if (!IsLoaded(file))
+                    if (!t.LoadedInGame)
                     {
-                        ModObjects.Add(file, new GameObject(file.Name));
-                        ModObjects[file].AddComponent(mod);
-                        UnityEngine.Object.DontDestroyOnLoad(ModObjects[file]);
-                        Logger.Log("Loaded: " + mod.Name + " From file: " + file.Name);
+                        t.Instance = (MonoBehaviour)GameObject.AddComponent(t.Type);
+                        Logger.Log("Loaded: " + t.Type.Name + " From file: " + mod.Name);
                     }
                 }
             }
         }
 
         //Unloads a mod from game
-        public void Unload(FileInfo file)
+        public void UnloadFromGame(Mod mod)
         {
-            if (allMods.TryGetValue(file, out var types))
+            if (mod.LoadedInGame)
             {
-                //if mod is loaded
-                if (IsLoaded(file))
+                foreach (Mod.ModType t in mod.Types)
                 {
-                    UnityEngine.Object.Destroy(ModObjects[file]);
-                    ModObjects.Remove(file);
-                    Logger.Log("Unloaded: " + file.Name);
+                    //if mod is loaded
+                    if (t.LoadedInGame)
+                    {
+                        UnityEngine.Object.Destroy(t.Instance);
+                        t.Instance = null;
+                    }
                 }
-                
+                Logger.Log("Unloaded: " + mod.Name);
             }
         }
     }

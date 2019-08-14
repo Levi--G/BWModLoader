@@ -28,21 +28,15 @@ namespace BWModLoader
             {
                 Directory.CreateDirectory(ModLoader.AssetsPath);
             }
-
-            //For each DLL in "Blackwake/Blackwake_Data/Managed/Mods/"
-            //Open them, Get the mod class, then add it in the game.
+            
             ModLoader loader = new ModLoader(logger);
             ModLoader.Instance = loader;
-            loader.RefreshModFiles();
-            foreach (FileInfo file in loader.GetAllMods().Keys)
-            {
-                loader.Load(file);
-            }
+            loader.LoadClientModFiles();
             logger.Log("All Mods have been Loaded!");
             GameObject ModGUI = new GameObject();
             ModGUI.AddComponent<ModGUI.ModGUI>();
-            logger.Log("GUI has been loaded");
             UnityEngine.Object.DontDestroyOnLoad(ModGUI);
+            logger.Log("GUI has been loaded");
         }
     }
 }

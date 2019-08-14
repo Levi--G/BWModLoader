@@ -10,8 +10,7 @@ namespace BWModLoader.ModGUI
     public enum ScreenType
     {
         MOD,
-        LOG,
-        Debug
+        LOG
     }
 
     /// <summary>
@@ -24,7 +23,6 @@ namespace BWModLoader.ModGUI
         Vector2 scrollPosition;
         Vector2 size;
         Vector2 position;
-        Dictionary<FileInfo, List<Type>> allmods;
 
         void Start()
         {
@@ -36,11 +34,6 @@ namespace BWModLoader.ModGUI
                                    (Screen.height / 2) - (size.x / 2));
         }
 
-        void RefreshMods()
-        {
-            allmods = ModLoader.Instance.GetAllMods();
-        }
-
         /// <summary>
         /// Toggles the Window when the Hotkey is pressed
         /// </summary>
@@ -49,7 +42,6 @@ namespace BWModLoader.ModGUI
             if (Input.GetKeyUp("insert"))
             {
                 debugEnabled = !debugEnabled;
-                RefreshMods();
             }
         }
 
@@ -81,39 +73,6 @@ namespace BWModLoader.ModGUI
                 case (int)ScreenType.LOG:
                     LogWindow();
                     break;
-                case (int)ScreenType.Debug:
-                    TestingWindow();
-                    break;
-            }
-        }
-        void TestingWindow()
-        {
-            if (GUI.Button(new Rect(0, 100, size.x, 25), "Get Refrences"))
-            {
-                Assembly[] asms = AppDomain.CurrentDomain.GetAssemblies();
-                foreach (Assembly a in asms)
-                {
-                    ModLoader.Instance.Logger.Log(a.FullName);
-                }
-            }
-            if (GUI.Button(new Rect(0, 125, size.x, 25), "Get all mods"))
-            {
-                ModLoader.Instance.Logger.Log("Loaded Mods:");
-                foreach (FileInfo file in allmods.Keys)
-                {
-                    if (ModLoader.Instance.IsLoaded(file))
-                    {
-                        ModLoader.Instance.Logger.Log(file.Name);
-                    }
-                }
-                ModLoader.Instance.Logger.Log("Unloaded Mods:");
-                foreach (FileInfo file in allmods.Keys)
-                {
-                    if (!ModLoader.Instance.IsLoaded(file))
-                    {
-                        ModLoader.Instance.Logger.Log(file.Name);
-                    }
-                }
             }
         }
 
@@ -146,49 +105,33 @@ namespace BWModLoader.ModGUI
         void ModWindow()
         {
             scrollPosition = GUI.BeginScrollView(new Rect(0, 100, size.x, size.y - 100), scrollPosition, new Rect(0, 0, size.x, 50));
-            if (GUI.Button(new Rect(0, 0, size.x, 25), "Refresh all mods"))
-            {
-                ModLoader.Instance.RefreshModFiles();
-                RefreshMods();
-            }
             int modNum = 0;
-            foreach (FileInfo file in allmods.Keys)
+            foreach (Mod mod in ModLoader.Instance.AllMods)
             {
-                modNum++;
-                //GUI.Label(new Rect(0, modNum * 25, 100, 25), mod.Name);
-                //GUI.Toggle(new Rect(0, modNum * 25, 100, 25), ModLoader.Instance.IsLoaded(mod), mod.Name);
-                bool newCheckboxStatus = GUI.Toggle(new Rect(5, modNum * 25, 150, 25), ModLoader.Instance.IsLoaded(file), file.Name);
+                bool newCheckboxStatus = GUI.Toggle(new Rect(5, modNum * 25, 150, 25), mod.LoadedInGame, mod.Name);
                 if (newCheckboxStatus)
                 {
-                    if (!ModLoader.Instance.IsLoaded(file))
+                    if (!mod.LoadedInGame)
                     {
-                        ModLoader.Instance.Load(file);
-                        RefreshMods();
+                        ModLoader.Instance.LoadInGame(mod);
                     }
                 }
                 else
                 {
-                    if (ModLoader.Instance.IsLoaded(file))
+                    if (mod.LoadedInGame)
                     {
-                        ModLoader.Instance.Unload(file);
-                        RefreshMods();
+                        ModLoader.Instance.UnloadFromGame(mod);
                     }
                 }
-
-                // Reload the respective Mod
-                if (GUI.Button(new Rect(155, modNum * 25, 100, 25), "Reload"))
-                {
-                    ModLoader.Instance.RefreshModFiles();
-                    RefreshMods();
-                }
-                if (GUI.Button(new Rect(255, modNum * 25, 100, 25), "Menu"))
-                {
-                    foreach (Type mod in ModLoader.Instance.GetAllMods()[file])
-                    {
-                        ModLoader.Instance.ModObjects[file].BroadcastMessage("OnSettingsMenu");
-                    }
-                }
-
+                //todo show mod.GetSettingsMenu
+                //if (GUI.Button(new Rect(255, modNum * 25, 100, 25), "Menu"))
+                //{
+                //    foreach (Type mod in ModLoader.Instance.AllMods()[mod])
+                //    {
+                //        ModLoader.Instance.GameObject[mod].BroadcastMessage("OnSettingsMenu");
+                //    }
+                //}
+                modNum++;
             }
             GUI.EndScrollView();
         }
